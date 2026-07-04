@@ -4,14 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>东北小小探险家 · Little Dongbei Explorers</title>
-<link href="https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
   --paper:#f7f1e2; --paper2:#fffaf0; --ink:#3c332a; --ink2:#8a7d6c;
   --seal:#b13a2f; --seal2:#8f2b22;
   --hlj:#3e6f8e; --jl:#4a7c59; --ln:#a8763e;
-  --disp:'ZCOOL XiaoWei','STKaiti','KaiTi',serif;
-  --body:'Noto Serif SC','Songti SC',serif;
+  --disp:'PingFang SC','Hiragino Sans GB','STKaiti','KaiTi','Microsoft YaHei',serif;
+  --body:'PingFang SC','Hiragino Sans GB','Microsoft YaHei','Songti SC',serif;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden}
@@ -184,6 +183,7 @@ body.winter #sky{background:linear-gradient(180deg,#d5dfea 0%,#e9edf2 45%,#f3f1e
   #compass{top:58px;width:38px;height:38px}
 }
 </style>
+  <link rel="manifest" href="manifest.json">
 </head>
 <body class="summer">
 
@@ -256,7 +256,7 @@ body.winter #sky{background:linear-gradient(180deg,#d5dfea 0%,#e9edf2 45%,#f3f1e
 <div id="confetti"></div>
 <div id="fallback" class="hidden">3D 引擎没有加载出来。<br>请检查网络后刷新一次试试。<br><span style="color:var(--ink2);font-size:12px">The 3D engine failed to load — please check the connection and refresh.</span></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="js/three.min.js"></script>
 <script>
 (function(){
 'use strict';
@@ -862,6 +862,12 @@ renderTray();
 applyCam();
 tick();
 })();
+</script>
+
+<script>
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').then(function(r){console.log('SW registered',r.scope);}).catch(function(e){console.log('SW failed',e);});
+}
 </script>
 </body>
 </html>

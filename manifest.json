@@ -1,0 +1,22 @@
+{
+  "name": "东北小小探险家",
+  "short_name": "东北探险家",
+  "description": "东北小小探险家 · 互动探索黑龙江、吉林、辽宁的3D地图",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#f7f1e2",
+  "theme_color": "#b13a2f",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
