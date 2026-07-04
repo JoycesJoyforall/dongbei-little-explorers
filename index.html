@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>东北小小探险家 · Little Dongbei Explorers</title>
+<link href="https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#f7f1e2; --paper2:#fffaf0; --ink:#3c332a; --ink2:#8a7d6c;
+  --seal:#b13a2f; --seal2:#8f2b22;
+  --hlj:#3e6f8e; --jl:#4a7c59; --ln:#a8763e;
+  --disp:'ZCOOL XiaoWei','STKaiti','KaiTi',serif;
+  --body:'Noto Serif SC','Songti SC',serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{font-family:var(--body);color:var(--ink);background:var(--paper)}
+.hidden{display:none!important}
+
+/* ------- sky backdrop, seasonal ------- */
+#sky{position:fixed;inset:0;z-index:0;transition:background 1s}
+body.summer #sky{background:linear-gradient(180deg,#cfe4e3 0%,#e9f0e4 45%,#f7f1e2 100%)}
+body.winter #sky{background:linear-gradient(180deg,#d5dfea 0%,#e9edf2 45%,#f3f1ea 100%)}
+
+#scene{position:fixed;inset:0;z-index:1;touch-action:none;cursor:grab}
+#scene.grabbing{cursor:grabbing}
+#labels{position:fixed;inset:0;z-index:5;pointer-events:none;overflow:hidden}
+
+/* ------- city chips ------- */
+.chip{position:absolute;left:-999px;top:-999px;pointer-events:auto;
+  font-family:var(--disp);font-size:14px;line-height:1;color:var(--ink);
+  background:rgba(255,250,240,.94);border:1.5px solid rgba(177,58,47,.5);
+  border-radius:999px;padding:5px 11px;white-space:nowrap;cursor:pointer;
+  box-shadow:0 2px 6px rgba(60,45,30,.18);
+  transform:translate(-50%,-115%);transition:border-color .2s}
+.chip:active{border-color:var(--seal)}
+.chip .em{margin-right:4px}
+.chip.done::after{content:"";display:inline-block;width:7px;height:7px;margin-left:5px;
+  border-radius:50%;background:var(--seal)}
+.geoLb{position:absolute;left:-999px;top:-999px;pointer-events:none;
+  font-family:var(--disp);font-size:11px;letter-spacing:3px;
+  color:rgba(72,60,48,.62);transform:translate(-50%,-50%);white-space:nowrap;
+  text-shadow:0 1px 2px rgba(255,250,240,.7)}
+.geoLb.blue{color:rgba(53,112,138,.75)}
+
+/* ------- top bar ------- */
+#topbar{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;
+  justify-content:space-between;padding:10px 12px;
+  background:linear-gradient(180deg,rgba(247,241,226,.92),rgba(247,241,226,0));
+  pointer-events:none}
+#topbar>*{pointer-events:auto}
+#titleBox{line-height:1.15}
+#titleBox h1{font-family:var(--disp);font-weight:400;font-size:19px;letter-spacing:2px}
+#titleBox .sub{font-size:10px;color:var(--ink2);letter-spacing:1px;margin-top:2px}
+#titleBox .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin:0 2px;vertical-align:middle}
+#topRight{display:flex;align-items:center;gap:8px}
+#seasons{display:flex;background:rgba(255,250,240,.9);border:1px solid rgba(140,110,80,.35);
+  border-radius:999px;overflow:hidden}
+#seasons button{border:0;background:transparent;font-family:var(--disp);font-size:13px;
+  padding:7px 11px;color:var(--ink2);cursor:pointer}
+#seasons button.on{background:var(--seal);color:#fff8ee}
+#stampCount{display:flex;align-items:center;gap:5px;background:rgba(255,250,240,.9);
+  border:1px solid rgba(177,58,47,.45);border-radius:999px;padding:5px 10px;
+  font-family:var(--disp);font-size:13px}
+.sealMini{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;
+  border:1.5px solid var(--seal);border-radius:4px;color:var(--seal);font-size:11px;
+  font-family:var(--disp);transform:rotate(-6deg)}
+
+/* ------- compass ------- */
+#compass{position:fixed;left:12px;top:64px;z-index:18;width:44px;height:44px;border-radius:50%;
+  background:rgba(255,250,240,.85);border:1px solid rgba(140,110,80,.35);
+  display:flex;align-items:center;justify-content:center;pointer-events:none}
+#compassIn{font-family:var(--disp);font-size:13px;color:var(--seal);text-align:center;line-height:1;
+  transition:transform .1s linear}
+#compassIn i{display:block;font-style:normal;font-size:9px;color:var(--ink2)}
+
+/* ------- zoom controls ------- */
+#zoomCtrls{position:fixed;right:12px;top:50%;transform:translateY(-50%);z-index:18;
+  display:flex;flex-direction:column;gap:8px}
+#zoomCtrls button{width:44px;height:44px;border-radius:50%;border:1px solid rgba(140,110,80,.4);
+  background:rgba(255,250,240,.92);font-size:19px;color:var(--ink);cursor:pointer;
+  box-shadow:0 2px 5px rgba(60,45,30,.15);font-family:var(--body)}
+#zoomCtrls button:active{background:#f0e6cf}
+
+/* ------- stamp tray ------- */
+#tray{position:fixed;left:50%;bottom:10px;transform:translateX(-50%);z-index:20;
+  display:flex;align-items:center;gap:6px;padding:8px 12px;max-width:96vw;
+  background:rgba(255,250,240,.92);border:1px solid rgba(140,110,80,.35);border-radius:999px;
+  box-shadow:0 3px 10px rgba(60,45,30,.15);overflow-x:auto}
+.slot{flex:0 0 auto;width:34px;height:34px;border-radius:50%;display:flex;
+  align-items:center;justify-content:center}
+.slot.empty{border:1.5px dashed rgba(140,110,80,.45);color:rgba(140,110,80,.5);font-size:14px}
+.seal{width:34px;height:34px;border-radius:50%;border:2px solid var(--seal);
+  color:var(--seal);background:rgba(177,58,47,.07);display:flex;align-items:center;justify-content:center;
+  font-family:var(--disp);font-size:16px;box-shadow:inset 0 0 0 1.5px rgba(247,241,226,.9), inset 0 0 0 2.5px rgba(177,58,47,.55)}
+.seal.pop{animation:stampIn .45s cubic-bezier(.2,1.4,.4,1)}
+@keyframes stampIn{0%{transform:scale(2.1) rotate(-18deg);opacity:0}60%{transform:scale(.9) rotate(var(--rot,-5deg));opacity:1}100%{transform:scale(1) rotate(var(--rot,-5deg))}}
+#resetBtn{flex:0 0 auto;border:0;background:transparent;color:var(--ink2);font-size:15px;
+  cursor:pointer;padding:4px 2px;font-family:var(--body)}
+#resetBtn.arm{color:var(--seal);font-size:11px;font-family:var(--disp)}
+
+/* ------- city card ------- */
+#cardWrap{position:fixed;inset:0;z-index:40;display:flex;align-items:flex-end;justify-content:center}
+#cardBackdrop{position:absolute;inset:0;background:rgba(60,48,36,.28)}
+#card{position:relative;width:min(480px,100vw);max-height:74vh;overflow-y:auto;
+  background:var(--paper2);border-radius:22px 22px 0 0;padding:16px 18px 20px;
+  box-shadow:0 -6px 26px rgba(60,45,30,.25);
+  border-top:2px solid rgba(177,58,47,.35);
+  animation:rise .3s ease-out}
+@keyframes rise{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+#card .handle{width:44px;height:4px;border-radius:2px;background:rgba(140,110,80,.35);margin:0 auto 12px}
+.cHead{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.cEmoji{font-size:34px;line-height:1}
+.cName .zh{font-family:var(--disp);font-size:26px;letter-spacing:3px;line-height:1.1}
+.cName .sub{font-size:11.5px;color:var(--ink2);margin-top:3px;letter-spacing:.5px}
+.provChip{margin-left:auto;font-family:var(--disp);font-size:12px;color:#fff8ee;
+  padding:4px 10px;border-radius:999px;letter-spacing:2px;white-space:nowrap}
+.cClose{border:0;background:transparent;font-size:24px;color:var(--ink2);cursor:pointer;
+  padding:2px 6px;line-height:1}
+.cSec{margin:11px 0}
+.secT{font-family:var(--disp);font-size:14.5px;letter-spacing:1px;color:var(--seal2);margin-bottom:4px}
+.secT i{font-style:normal;font-size:10.5px;color:var(--ink2);letter-spacing:.5px;margin-left:6px}
+.cSec p.zh{font-size:14.5px;line-height:1.65}
+.cSec p.en{font-size:11.5px;line-height:1.5;color:var(--ink2);margin-top:2px}
+.cSeasons{display:flex;gap:8px;margin:13px 0 4px}
+.ss{flex:1;border:1px solid rgba(140,110,80,.3);border-radius:12px;padding:8px 9px;background:rgba(247,241,226,.6)}
+.ss.now{border-color:var(--seal);background:rgba(177,58,47,.06)}
+.ss b{display:block;font-family:var(--disp);font-weight:400;font-size:12.5px;margin-bottom:3px}
+.ss p{font-size:12px;line-height:1.55}
+.ss p.en{font-size:10.5px;color:var(--ink2);margin-top:2px}
+#stampBtn{display:block;width:100%;margin-top:14px;border:0;border-radius:14px;
+  background:var(--seal);color:#fff8ee;font-family:var(--disp);font-size:17px;
+  letter-spacing:4px;padding:13px;cursor:pointer;box-shadow:0 3px 8px rgba(143,43,34,.35)}
+#stampBtn small{display:block;font-size:10px;letter-spacing:1px;opacity:.85;margin-top:2px;font-family:var(--body)}
+#stampBtn:active{transform:scale(.98)}
+#stampBtn.done{background:transparent;color:var(--seal);border:1.5px dashed var(--seal);box-shadow:none}
+.bigSeal{position:absolute;right:22px;top:74px;width:64px;height:64px;border-radius:50%;
+  border:3px solid var(--seal);color:var(--seal);display:flex;align-items:center;justify-content:center;
+  font-family:var(--disp);font-size:30px;background:rgba(177,58,47,.06);
+  box-shadow:inset 0 0 0 2px rgba(255,250,240,.9), inset 0 0 0 4px rgba(177,58,47,.5);
+  transform:rotate(-8deg);animation:stampIn .5s cubic-bezier(.2,1.4,.4,1);pointer-events:none}
+
+/* ------- paper overlays (intro / certificate) ------- */
+.ovl{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;
+  background:rgba(60,48,36,.35);padding:18px}
+.paperCard{position:relative;width:min(410px,94vw);max-height:88vh;overflow-y:auto;
+  background:var(--paper2);border-radius:18px;padding:26px 24px 22px;text-align:center;
+  box-shadow:0 10px 40px rgba(60,45,30,.35)}
+.paperCard::before{content:"";position:absolute;inset:8px;border:1.5px solid rgba(177,58,47,.4);
+  border-radius:12px;pointer-events:none}
+.iSeal{position:absolute;right:20px;top:18px;width:34px;height:34px;border:2px solid var(--seal);
+  border-radius:7px;color:var(--seal);font-family:var(--disp);font-size:19px;
+  display:flex;align-items:center;justify-content:center;transform:rotate(8deg)}
+.paperCard h1{font-family:var(--disp);font-weight:400;font-size:34px;letter-spacing:6px;line-height:1.25;margin-top:6px}
+.iSub{font-size:11px;color:var(--ink2);letter-spacing:2px;margin:6px 0 14px}
+.iLead{font-size:13.5px;line-height:1.8;margin-bottom:14px;text-align:left}
+.iLead b{font-weight:600}
+.how{display:flex;align-items:center;gap:12px;text-align:left;font-size:13px;line-height:1.5;
+  margin:9px 0;padding:0 4px}
+.how>span{flex:0 0 30px;font-size:20px;text-align:center}
+.how i{font-style:normal;display:block;font-size:10.5px;color:var(--ink2)}
+.goBtn{display:block;width:100%;margin-top:18px;border:0;border-radius:14px;
+  background:var(--seal);color:#fff8ee;font-family:var(--disp);font-size:19px;letter-spacing:5px;
+  padding:14px;cursor:pointer;box-shadow:0 3px 10px rgba(143,43,34,.4)}
+.iFoot{margin-top:14px;font-size:10px;color:var(--ink2);letter-spacing:3px}
+.certSeal{width:74px;height:74px;margin:14px auto 4px;border:3px solid var(--seal);border-radius:50%;
+  color:var(--seal);font-family:var(--disp);font-size:36px;display:flex;align-items:center;justify-content:center;
+  transform:rotate(-8deg);box-shadow:inset 0 0 0 2px rgba(255,250,240,.9), inset 0 0 0 4px rgba(177,58,47,.5)}
+.certLine{font-size:14px;line-height:2;margin-top:8px}
+.certDate{font-family:var(--disp);font-size:12px;color:var(--ink2);letter-spacing:3px;margin-top:8px}
+
+/* ------- confetti ------- */
+#confetti{position:fixed;inset:0;z-index:70;pointer-events:none;overflow:hidden}
+.cf{position:absolute;top:-6vh;font-size:22px;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(115vh) rotate(340deg)}}
+
+#fallback{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;
+  text-align:center;padding:30px;background:var(--paper);font-size:14px;line-height:2}
+
+@media (max-width:380px){
+  #titleBox h1{font-size:16px}
+  .slot,.seal{width:29px;height:29px;font-size:14px}
+  #compass{top:58px;width:38px;height:38px}
+}
+</style>
+</head>
+<body class="summer">
+
+<div id="sky"></div>
+<div id="scene"></div>
+<div id="labels"></div>
+
+<div id="compass"><div id="compassIn">▲<br>北<i>N</i></div></div>
+
+<header id="topbar">
+  <div id="titleBox">
+    <h1>东北小小探险家</h1>
+    <div class="sub">
+      <span class="dot" style="background:var(--hlj)"></span>黑龙江
+      <span class="dot" style="background:var(--jl)"></span>吉林
+      <span class="dot" style="background:var(--ln)"></span>辽宁
+      &nbsp;· Little Dongbei Explorers
+    </div>
+  </div>
+  <div id="topRight">
+    <div id="seasons">
+      <button type="button" data-s="summer" class="on">☀️ 夏</button>
+      <button type="button" data-s="winter">❄️ 冬</button>
+    </div>
+    <div id="stampCount"><span class="sealMini">印</span><b id="scNum">0</b>/9</div>
+  </div>
+</header>
+
+<div id="zoomCtrls">
+  <button type="button" id="zin" aria-label="放大">＋</button>
+  <button type="button" id="zout" aria-label="缩小">－</button>
+  <button type="button" id="zhome" aria-label="回到全图">⌂</button>
+</div>
+
+<div id="tray"><span id="trayInner" style="display:flex;gap:6px"></span><button type="button" id="resetBtn" title="重新开始">↺</button></div>
+
+<div id="cardWrap" class="hidden">
+  <div id="cardBackdrop"></div>
+  <div id="card"></div>
+</div>
+
+<div id="intro" class="ovl">
+  <div class="paperCard">
+    <div class="iSeal">記</div>
+    <h1>东北<br>小小探险家</h1>
+    <div class="iSub">LITTLE DONGBEI EXPLORERS</div>
+    <p class="iLead">这里是中国的东北 —— <b style="color:var(--hlj)">黑龙江</b>、<b style="color:var(--jl)">吉林</b>、<b style="color:var(--ln)">辽宁</b>三个省叠在一起，像一只往南飞的大天鹅。</p>
+    <div class="how"><span>👆</span><div>拖一拖，转动这片大地<i>Drag to spin the land</i></div></div>
+    <div class="how"><span>📍</span><div>点一点城市，打开它的宝盒<i>Tap a place to open its card</i></div></div>
+    <div class="how"><span class="sealMini" style="width:26px;height:26px;font-size:14px">印</span><div>每到一个地方，盖一个章，集齐 9 个<i>Collect all nine stamps</i></div></div>
+    <div class="how"><span>☀️❄️</span><div>右上角切换夏天和冬天，大地会换衣服<i>Switch the seasons — the land changes its clothes</i></div></div>
+    <button type="button" class="goBtn" id="goBtn">出 发 ！<span style="font-size:12px;letter-spacing:1px;font-family:var(--body)"> Let's go</span></button>
+    <div class="iFoot">JOYZ</div>
+  </div>
+</div>
+
+<div id="cert" class="ovl hidden">
+  <div class="paperCard">
+    <div class="iSeal">記</div>
+    <h1 style="font-size:27px">小小探险家证书</h1>
+    <div class="iSub">CERTIFICATE OF THE LITTLE EXPLORER</div>
+    <div class="certSeal">記</div>
+    <p class="certLine">恭喜！你走遍了东北三省，<br>集齐了全部 <b style="color:var(--seal)">9</b> 枚印章。</p>
+    <p class="certLine" style="font-family:var(--disp);letter-spacing:2px">颁给：勇敢的小小探险家</p>
+    <div class="certDate" id="certDate"></div>
+    <button type="button" class="goBtn" id="certClose" style="margin-top:16px">继续探险 · Keep exploring</button>
+  </div>
+</div>
+
+<div id="confetti"></div>
+<div id="fallback" class="hidden">3D 引擎没有加载出来。<br>请检查网络后刷新一次试试。<br><span style="color:var(--ink2);font-size:12px">The 3D engine failed to load — please check the connection and refresh.</span></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+if(!window.THREE){document.getElementById('fallback').classList.remove('hidden');return;}
+
+/* =============== data =============== */
+var PROV={
+  hlj:{zh:'黑龙江',css:'--hlj',hex:0x3e6f8e},
+  jl :{zh:'吉林',  css:'--jl', hex:0x4a7c59},
+  ln :{zh:'辽宁',  css:'--ln', hex:0xa8763e}
+};
+
+var CITIES=[
+ {id:'mohe',zh:'漠河',pin:"Mòhé",en:'Mohe',prov:'hlj',emoji:'🌌',lat:52.97,lon:122.5,ch:'北',
+  see:{zh:'北极村——中国最北的村子。到处找"最北"：最北的邮局、最北的一家人。',en:"China's northernmost village — hunt for the 'most-north' post office!"},
+  eat:{zh:'江里捞上来的冷水鱼，炖一锅特别鲜。',en:'Fresh cold-water fish stew from the river.'},
+  fun:{zh:'冬天可以冷到零下40度，把热水泼向天空，"唰"地一下变成冰雾！运气特别特别好，还能见到北极光。',en:'At −40°C, hot water thrown in the air turns to ice mist. With great luck you might glimpse the aurora.'},
+  win:{zh:'中国最冷的地方，要穿得像小企鹅。',en:"China's coldest spot — dress like a penguin!"},
+  sum:{zh:'夏至有"白夜"，天到很晚很晚都不黑。',en:'"White nights" — the sky stays light till very late.'}},
+ {id:'qiqihar',zh:'齐齐哈尔',pin:"Qíqíhā'ěr",en:'Qiqihar',prov:'hlj',emoji:'🕊️',lat:47.35,lon:123.92,ch:'鹤',
+  see:{zh:'扎龙湿地的丹顶鹤——头顶一点红，一起飞像仙子。',en:'Red-crowned cranes at the Zhalong wetlands.'},
+  eat:{zh:'齐齐哈尔烤肉，一家人围着烤盘自己动手。',en:'Famous do-it-yourself family barbecue.'},
+  fun:{zh:'丹顶鹤在中国叫"仙鹤"，代表长寿；它们休息的时候，喜欢单腿站着。',en:'Cranes stand on one leg to rest — and stand for long life in China.'},
+  win:{zh:'雪地放鹤：白雪配红头顶，最好认。',en:'Cranes flying over snow.'},
+  sum:{zh:'芦苇绿了，小鹤宝宝跟着爸爸妈妈学走路。',en:'Baby cranes learn to walk in the green reeds.'}},
+ {id:'harbin',zh:'哈尔滨',pin:"Hā'ěrbīn",en:'Harbin',prov:'hlj',emoji:'❄️',lat:45.75,lon:126.65,ch:'冰',
+  see:{zh:'冰雪大世界的冰城堡晚上会发光；圣索菲亚教堂戴着绿色的"洋葱头"屋顶。',en:'Glowing ice castles, and a church with a green onion-shaped roof.'},
+  eat:{zh:'锅包肉就是在哈尔滨发明的！还有红肠，和零下20度也要吃的马迭尔冰棍。',en:'Guobaorou (crispy sweet-and-sour pork) was invented here — plus ice lollies at −20°C.'},
+  fun:{zh:'冬天松花江整条冻住，人们在冰面上滑冰、坐雪圈，还有勇敢的人凿开冰洞游泳！',en:'The whole Songhua River freezes — some brave people even swim in ice holes!'},
+  win:{zh:'一月来看冰灯冰雕，整座城亮晶晶。',en:'Ice lanterns in January — the whole city sparkles.'},
+  sum:{zh:'凉快的"冰城夏都"，逛中央大街的石头路。',en:'Cool summers — stroll the cobbled Central Street.'}},
+ {id:'changchun',zh:'长春',pin:"Chángchūn",en:'Changchun',prov:'jl',emoji:'🚗',lat:43.88,lon:125.32,ch:'车',dx:-40,
+  see:{zh:'长影旧址博物馆看老电影怎么拍；净月潭有一大片森林和湖。',en:'A film-studio museum, and a big forest around a lake.'},
+  eat:{zh:'东北铁锅炖：一大锅咕嘟咕嘟，锅边贴一圈玉米饼。',en:'Iron-pot stew with corn cakes stuck round the edge.'},
+  fun:{zh:'新中国的第一辆汽车——"解放"牌大卡车，就是在长春造出来的，所以它叫"汽车城"。',en:"China's first home-made truck was built here — the 'Motor City'."},
+  win:{zh:'净月潭变成滑雪和雪雕的世界。',en:'Skiing and snow sculptures at Jingyuetan.'},
+  sum:{zh:'在大森林里骑车、找松鼠。',en:'Cycle the forest and spot squirrels.'}},
+ {id:'jilin',zh:'吉林市',pin:"Jílín",en:'Jilin City',prov:'jl',emoji:'🌲',lat:43.84,lon:126.55,ch:'凇',dx:42,
+  see:{zh:'冬天清晨的雾凇——江边的树一夜之间穿上白色的"冰羽毛"。',en:"Rime ice: riverside trees dressed overnight in white 'ice feathers'."},
+  eat:{zh:'乌拉满族火锅，铜锅咕嘟咕嘟冒热气。',en:'Manchu copper-pot hotpot, bubbling away.'},
+  fun:{zh:'为什么树上会开"冰花"？松花江有一段冬天不结冰，暖暖的水汽飘到冷冷的树枝上，就冻成了雾凇。它是中国四大自然奇观之一。',en:'Warm river mist freezes onto icy branches — one of China\'s four great natural wonders.'},
+  win:{zh:'看雾凇要起大早，太阳一晒就化了。',en:'Wake early — sunshine melts the rime.'},
+  sum:{zh:'松花湖上坐船、吃鱼。',en:'Boat rides and fresh fish on Songhua Lake.'}},
+ {id:'yanji',zh:'延吉',pin:"Yánjí",en:'Yanji',prov:'jl',emoji:'🍜',lat:42.9,lon:129.5,ch:'面',
+  see:{zh:'中国朝鲜族民俗园——穿上彩色的民族服装，转个圈拍张照。',en:'Dress up in colourful Korean-Chinese hanbok for photos.'},
+  eat:{zh:'冰冰凉凉、酸酸甜甜的延吉冷面，还有打糕和辣白菜。',en:'Icy sweet-tangy cold noodles, rice cakes and kimchi.'},
+  fun:{zh:'这里的路牌写着两种文字：汉字和朝鲜文，像自带小翻译。',en:'Street signs come in two scripts — Chinese and Korean.'},
+  win:{zh:'坐在热热的炕上吃冰凉的冷面，冰火两重天！',en:'Cold noodles on a toasty-warm kang bed!'},
+  sum:{zh:'逛夜市，小吃一条街。',en:'Night-market snack street.'}},
+ {id:'changbai',zh:'长白山',pin:"Chángbáishān",en:'Changbai Mountain',prov:'jl',emoji:'🌋',lat:42.02,lon:128.06,ch:'池',dy:14,
+  see:{zh:'山顶的天池——一个装在火山口里的湖！还有68米高的长白瀑布。',en:'A lake inside a volcano crater, and a 68-metre waterfall.'},
+  eat:{zh:'用温泉水煮的鸡蛋：蛋黄先熟，蛋白嫩嫩的。',en:'Eggs boiled in hot-spring water — yolk first!'},
+  fun:{zh:'天池是中国最深的湖。传说里面住着神秘的"天池怪兽"——你信吗？',en:"China's deepest lake — legend says a monster lives inside. Do you believe it?"},
+  win:{zh:'厚厚的粉雪，滑雪像踩在云朵上。',en:'Powder snow like skiing on clouds.'},
+  sum:{zh:'上山要碰运气：云散开，才见得到天池。',en:'Climb up and hope the clouds part to reveal the lake.'}},
+ {id:'shenyang',zh:'沈阳',pin:"Shěnyáng",en:'Shenyang',prov:'ln',emoji:'🏯',lat:41.8,lon:123.43,ch:'宫',
+  see:{zh:'沈阳故宫——北京故宫的"小兄弟"，金黄色的琉璃屋顶闪闪发亮。',en:"The 'little sibling' of Beijing's Forbidden City, with gleaming golden roofs."},
+  eat:{zh:'老边饺子开了快两百年；还有沈阳人最爱啃的鸡架。',en:'Dumplings from a nearly 200-year-old shop.'},
+  fun:{zh:'全中国只有两座皇宫建筑群：一座在北京，另一座就在沈阳。',en:'China has only two imperial palace complexes — one is right here.'},
+  win:{zh:'红墙配白雪，故宫最好看的时候。',en:'Red walls and white snow — the palace at its best.'},
+  sum:{zh:'逛故宫，数一数屋顶上的小神兽。',en:'Count the little guardian beasts on the roofs.'}},
+ {id:'dalian',zh:'大连',pin:"Dàlián",en:'Dalian',prov:'ln',emoji:'🌊',lat:38.95,lon:121.6,ch:'海',
+  see:{zh:'星海广场看大海；圣亚海洋世界里有企鹅和白鲸。',en:'A huge seaside square, plus penguins and belugas at the aquarium.'},
+  eat:{zh:'海鲜大餐：扇贝、海胆、大虾，都是刚从海里来的。',en:'Scallops, sea urchins and prawns, fresh from the sea.'},
+  fun:{zh:'大连的有轨电车叮叮当当跑了一百多年，到今天还在载客！',en:'Its trams have rattled along for over 100 years — and still run today.'},
+  win:{zh:'海边的冬天不算太冷，去看海鸥。',en:'Mild winters — go and watch the seagulls.'},
+  sum:{zh:'踩沙滩、捡贝壳、吹海风。',en:'Beaches, shells and sea breeze.'}}
+];
+
+var GEO=[
+ {zh:'松花江',lat:46.35,lon:128.6,cls:'blue'},
+ {zh:'黑龙江',lat:51.35,lon:127.1,cls:'blue'},
+ {zh:'渤 海',lat:39.5,lon:119.9,cls:'blue',sea:true},
+ {zh:'大兴安岭',lat:50.6,lon:122.1,cls:''},
+ {zh:'小兴安岭',lat:48.7,lon:128.9,cls:''}
+];
+
+/* =============== stamp persistence (in-Claude storage, memory fallback) =============== */
+var mem={s:[]};
+function loadStamps(){
+  return new Promise(function(res){
+    try{
+      if(window.storage){
+        window.storage.get('dongbei_stamps').then(function(r){
+          res(r&&r.value?JSON.parse(r.value):[]);
+        }).catch(function(){res(mem.s);});
+        return;
+      }
+    }catch(e){}
+    res(mem.s);
+  });
+}
+function saveStamps(arr){
+  mem.s=arr;
+  try{ if(window.storage){ window.storage.set('dongbei_stamps',JSON.stringify(arr)).catch(function(){}); } }catch(e){}
+}
+
+/* =============== geography: height field =============== */
+var LON0=127, LAT0=45.6, SC=10;
+function toX(lon){return (lon-LON0)*SC;}
+function toZ(lat){return (LAT0-lat)*SC;}
+
+var BLOBS=[ /* lat, lon, radius — the three-province landmass */
+ [52.2,123.5,2.4],[51.0,125.6,2.2],[49.3,127.2,2.5],[47.9,124.6,2.6],
+ [47.5,128.9,2.6],[46.4,132.4,2.5],[45.6,126.9,2.6],[44.8,130.6,2.1],
+ [43.8,125.7,2.3],[43.6,127.9,2.1],[42.4,128.5,1.8],[42.95,129.6,1.6],[44.8,123.8,2.2],
+ [41.7,122.5,2.4],[41.3,124.3,1.8],[40.4,122.4,1.7],[41.3,120.6,1.9],[39.7,121.9,1.3],[38.95,121.4,0.95]
+];
+var RIDGES=[ /* lat0,lon0,lat1,lon1,width,amp */
+ [46.2,120.9,52.6,123.8,1.6,4.2],  /* 大兴安岭 */
+ [47.3,127.1,49.5,130.0,1.3,3.2],  /* 小兴安岭 */
+ [41.0,125.2,43.6,129.0,1.1,4.4],  /* 长白山脉 */
+ [44.0,128.5,45.8,129.9,1.0,2.8],
+ [38.95,121.5,41.1,123.2,0.7,2.2], /* 千山（辽东半岛） */
+ [40.9,119.9,42.5,121.3,0.9,2.6],
+ [45.9,131.6,46.8,133.4,0.8,1.7]
+];
+function segDist(la,lo,g){
+  var s=0.75;
+  var px=lo*s, py=la, ax=g[1]*s, ay=g[0], bx=g[3]*s, by=g[2];
+  var vx=bx-ax, vy=by-ay, wx=px-ax, wy=py-ay;
+  var t=(vx*wx+vy*wy)/(vx*vx+vy*vy); t=Math.max(0,Math.min(1,t));
+  var dx=px-(ax+vx*t), dy=py-(ay+vy*t);
+  return Math.sqrt(dx*dx+dy*dy);
+}
+function gaussPt(la,lo,cla,clo,r,a){
+  var dx=(lo-clo)*0.75, dy=la-cla;
+  return a*Math.exp(-(dx*dx+dy*dy)/(r*r));
+}
+function hAt(la,lo){
+  var m=0,i,b,dx,dy,v;
+  for(i=0;i<BLOBS.length;i++){
+    b=BLOBS[i]; dx=(lo-b[1])*0.75; dy=la-b[0];
+    v=Math.exp(-(dx*dx+dy*dy)/(b[2]*b[2]));
+    if(v>m)m=v;
+  }
+  var land=Math.max(0,Math.min(1,(m-0.40)/0.2));
+  var h=Math.tanh((m-0.42)*3)*2.2;
+  var r=0;
+  for(i=0;i<RIDGES.length;i++){
+    var g=RIDGES[i], d=segDist(la,lo,g);
+    r+=g[5]*Math.exp(-(d*d)/(g[4]*g[4]));
+  }
+  r+=gaussPt(la,lo,42.02,128.06,0.45,3.2);   /* 天池主峰 */
+  r-=gaussPt(la,lo,42.02,128.06,0.14,1.6);   /* 火山口 */
+  var n=Math.sin(la*1.7+lo*0.9)*0.35+Math.sin(la*3.1+1)*0.2+Math.sin(lo*2.3+la*0.5)*0.25;
+  h+=land*(r+n*0.8);
+  return Math.max(h,-1.4);
+}
+
+/* =============== three.js scene =============== */
+var scene=new THREE.Scene();
+var camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,0.1,700);
+var renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
+renderer.setSize(innerWidth,innerHeight);
+document.getElementById('scene').appendChild(renderer.domElement);
+
+scene.fog=new THREE.Fog(0xe3eee9,150,460);
+var hemi=new THREE.HemisphereLight(0xfff6e2,0x9db08a,0.95); scene.add(hemi);
+var sun=new THREE.DirectionalLight(0xfff2d8,0.85); sun.position.set(60,110,40); scene.add(sun);
+
+/* sea */
+var sea=new THREE.Mesh(new THREE.PlaneGeometry(700,700),
+  new THREE.MeshLambertMaterial({color:0x8fbfca}));
+sea.rotation.x=-Math.PI/2; sea.position.y=0; scene.add(sea);
+
+/* terrain */
+var SEGX=110,SEGZ=100;
+var terrGeo=new THREE.PlaneGeometry(180,170,SEGX,SEGZ);
+terrGeo.rotateX(-Math.PI/2);
+var pos=terrGeo.attributes.position;
+var VC=pos.count;
+var heights=new Float32Array(VC);
+var lats=new Float32Array(VC);
+for(var i=0;i<VC;i++){
+  var x=pos.getX(i), z=pos.getZ(i);
+  var la=LAT0-z/SC, lo=LON0+x/SC;
+  var h=hAt(la,lo);
+  pos.setY(i,h);
+  heights[i]=h; lats[i]=la;
+}
+pos.needsUpdate=true;
+terrGeo.computeVertexNormals();
+var cols=new Float32Array(VC*3);
+terrGeo.setAttribute('color',new THREE.BufferAttribute(cols,3));
+var terrain=new THREE.Mesh(terrGeo,new THREE.MeshLambertMaterial({vertexColors:true}));
+scene.add(terrain);
+
+var C=new THREE.Color();
+function lerpC(a,b,t){C.set(a).lerp(new THREE.Color(b),t);return C;}
+function recolor(season){
+  for(var i=0;i<VC;i++){
+    var h=heights[i], c;
+    if(season==='summer'){
+      if(h<0.05)      c=lerpC(0x6f9fb0,0x87b3bd,0.5);
+      else if(h<0.3)  c=lerpC(0xe6d7ac,0xd8cb9d,(h)/0.3);
+      else if(h<1.6)  c=lerpC(0xa2c682,0x7fae67,(h-0.3)/1.3);
+      else if(h<3.4)  c=lerpC(0x6d9c63,0x4f8657,(h-1.6)/1.8);
+      else if(h<5.4)  c=lerpC(0x4f8657,0x3d6f4c,(h-3.4)/2);
+      else if(h<7.0)  c=lerpC(0x77705f,0x8d8676,(h-5.4)/1.6);
+      else            c=lerpC(0xefeadd,0xffffff,Math.min(1,(h-7)/1.5));
+      if(lats[i]>49)  c.lerp(new THREE.Color(0x5f7f57),0.18);
+    }else{
+      if(h<0.05)      c=lerpC(0xc9d8de,0xd6e2e7,0.5);
+      else if(h<0.3)  c=lerpC(0xdbe4ea,0xe9eef2,h/0.3);
+      else if(h<2.2)  c=lerpC(0xeef2f5,0xf8fafc,(h-0.3)/1.9);
+      else if(h<5.0)  c=lerpC(0xf8fafc,0xffffff,(h-2.2)/2.8);
+      else if(h<7.0)  c=lerpC(0xd9dfe6,0xc9d1da,(h-5)/2);
+      else            c=lerpC(0xf4f7fa,0xffffff,Math.min(1,(h-7)/1.5));
+    }
+    cols[i*3]=c.r; cols[i*3+1]=c.g; cols[i*3+2]=c.b;
+  }
+  terrGeo.attributes.color.needsUpdate=true;
+}
+
+/* rivers */
+var RIVERS=[
+ [[42.05,128.0],[42.9,127.2],[43.75,126.55],[44.5,126.1],[45.2,125.4],[45.45,126.0],[45.75,126.63],[46.3,127.6],[46.6,129.2],[46.8,130.35],[47.4,131.8],[47.65,132.55]],
+ [[50.2,125.2],[49.2,124.6],[48.3,124.3],[47.35,123.92],[46.3,123.9],[45.4,124.6],[45.2,125.4]],
+ [[52.2,120.8],[52.9,122.4],[52.7,124.5],[51.9,126.3],[50.4,127.5],[49.4,128.9],[48.4,130.5],[47.9,131.9],[47.65,132.55]],
+ [[41.95,128.1],[41.4,126.9],[40.9,126.0],[40.45,124.9],[40.05,124.4]]
+];
+var riverMat=new THREE.MeshLambertMaterial({color:0x5fa3b8});
+var riverGroup=new THREE.Group(); scene.add(riverGroup);
+RIVERS.forEach(function(pts){
+  var v=pts.map(function(p){
+    var y=Math.max(hAt(p[0],p[1]),0)+0.18;
+    return new THREE.Vector3(toX(p[1]),y,toZ(p[0]));
+  });
+  var curve=new THREE.CatmullRomCurve3(v);
+  var tube=new THREE.Mesh(new THREE.TubeGeometry(curve,120,0.17,6),riverMat);
+  riverGroup.add(tube);
+});
+
+/* 天池 lake disc */
+var peakY=hAt(42.02,128.06);
+var lake=new THREE.Mesh(new THREE.CylinderGeometry(0.62,0.62,0.1,20),
+  new THREE.MeshLambertMaterial({color:0x4f93b8}));
+lake.position.set(toX(128.06),peakY+0.06,toZ(42.02));
+scene.add(lake);
+
+/* trees */
+var treeMat=new THREE.MeshLambertMaterial({color:0x2f6b45});
+var treeGeo=new THREE.ConeGeometry(0.55,1.6,6);
+var spots=[],tries=0;
+while(spots.length<150&&tries<1400){
+  tries++;
+  var tla=38.6+Math.random()*14.8, tlo=119.2+Math.random()*15.4;
+  var th=hAt(tla,tlo);
+  if(th>1.7&&th<6.4) spots.push([toX(tlo),th,toZ(tla)]);
+}
+var trees=new THREE.InstancedMesh(treeGeo,treeMat,spots.length);
+var m4=new THREE.Matrix4(), q=new THREE.Quaternion(), sc3=new THREE.Vector3();
+spots.forEach(function(s,idx){
+  var k=0.6+Math.random()*0.8;
+  sc3.set(k,k,k);
+  m4.compose(new THREE.Vector3(s[0],s[1]+0.75*k,s[2]),q,sc3);
+  trees.setMatrixAt(idx,m4);
+});
+trees.instanceMatrix.needsUpdate=true;
+scene.add(trees);
+
+/* city markers */
+var stickMat=new THREE.MeshLambertMaterial({color:0x7c6350});
+CITIES.forEach(function(c){
+  var h=hAt(c.lat,c.lon);
+  c._y=h;
+  var g=new THREE.Group();
+  var stick=new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.11,1.7,8),stickMat);
+  stick.position.y=h+0.55;
+  var ball=new THREE.Mesh(new THREE.SphereGeometry(0.5,16,12),
+    new THREE.MeshLambertMaterial({color:PROV[c.prov].hex}));
+  ball.position.y=h+1.55;
+  g.add(stick); g.add(ball);
+  g.position.set(toX(c.lon),0,toZ(c.lat));
+  scene.add(g);
+});
+
+/* snow */
+var SN=650;
+var snowPos=new Float32Array(SN*3), snowSp=new Float32Array(SN);
+for(var s=0;s<SN;s++){
+  snowPos[s*3]=-90+Math.random()*180;
+  snowPos[s*3+1]=Math.random()*45;
+  snowPos[s*3+2]=-85+Math.random()*170;
+  snowSp[s]=0.05+Math.random()*0.11;
+}
+var snowGeo=new THREE.BufferGeometry();
+snowGeo.setAttribute('position',new THREE.BufferAttribute(snowPos,3));
+var snow=new THREE.Points(snowGeo,new THREE.PointsMaterial({color:0xffffff,size:0.65,transparent:true,opacity:0.9,depthWrite:false}));
+snow.visible=false; scene.add(snow);
+
+/* =============== camera control =============== */
+var cur={th:0.18,ph:0.92,r:114,lx:0,ly:2,lz:4};
+var tgt={th:0.18,ph:0.92,r:114,lx:0,ly:2,lz:4};
+var HOME={ph:0.92,r:114,lx:0,ly:2,lz:4};
+function applyCam(){
+  camera.position.set(
+    cur.lx+cur.r*Math.sin(cur.ph)*Math.sin(cur.th),
+    cur.ly+cur.r*Math.cos(cur.ph),
+    cur.lz+cur.r*Math.sin(cur.ph)*Math.cos(cur.th));
+  camera.lookAt(cur.lx,cur.ly,cur.lz);
+}
+var lastAct=Date.now(), cardOpen=false;
+function poke(){lastAct=Date.now();}
+
+var el=renderer.domElement, ptrs={}, nPtr=0, lastPinch=0;
+el.style.touchAction='none';
+el.addEventListener('pointerdown',function(e){
+  ptrs[e.pointerId]={x:e.clientX,y:e.clientY}; nPtr++;
+  el.setPointerCapture(e.pointerId);
+  document.getElementById('scene').classList.add('grabbing');
+  poke();
+});
+el.addEventListener('pointermove',function(e){
+  if(!ptrs[e.pointerId])return;
+  var p=ptrs[e.pointerId];
+  var dx=e.clientX-p.x, dy=e.clientY-p.y;
+  p.x=e.clientX; p.y=e.clientY;
+  var ids=Object.keys(ptrs);
+  if(nPtr===1){
+    tgt.th-=dx*0.005;
+    tgt.ph=Math.max(0.25,Math.min(1.28,tgt.ph-dy*0.004));
+  }else if(nPtr>=2&&ids.length>=2){
+    var a=ptrs[ids[0]], b=ptrs[ids[1]];
+    var d=Math.hypot(a.x-b.x,a.y-b.y);
+    if(lastPinch>0) tgt.r=Math.max(38,Math.min(175,tgt.r*lastPinch/d));
+    lastPinch=d;
+  }
+  poke();
+});
+function ptrUp(e){
+  if(ptrs[e.pointerId]){delete ptrs[e.pointerId]; nPtr=Math.max(0,nPtr-1);}
+  if(nPtr<2)lastPinch=0;
+  if(nPtr===0)document.getElementById('scene').classList.remove('grabbing');
+  poke();
+}
+el.addEventListener('pointerup',ptrUp);
+el.addEventListener('pointercancel',ptrUp);
+el.addEventListener('wheel',function(e){
+  e.preventDefault();
+  tgt.r=Math.max(38,Math.min(175,tgt.r*(1+e.deltaY*0.0011)));
+  poke();
+},{passive:false});
+
+document.getElementById('zin').onclick=function(){tgt.r=Math.max(38,tgt.r*0.8);poke();};
+document.getElementById('zout').onclick=function(){tgt.r=Math.min(175,tgt.r*1.25);poke();};
+document.getElementById('zhome').onclick=function(){goHome();closeCard();poke();};
+
+function flyTo(c){
+  tgt.lx=toX(c.lon); tgt.ly=c._y*0.6+1; tgt.lz=toZ(c.lat);
+  tgt.r=50; tgt.ph=0.95;
+}
+function goHome(){
+  tgt.lx=HOME.lx; tgt.ly=HOME.ly; tgt.lz=HOME.lz; tgt.r=HOME.r; tgt.ph=HOME.ph;
+}
+
+/* =============== labels =============== */
+var labelLayer=document.getElementById('labels');
+var LB=[];
+CITIES.forEach(function(c){
+  var b=document.createElement('button');
+  b.type='button'; b.className='chip'; b.dataset.id=c.id;
+  b.innerHTML='<span class="em">'+c.emoji+'</span>'+c.zh;
+  b.addEventListener('click',function(){openCard(c);});
+  labelLayer.appendChild(b);
+  LB.push({el:b,w:new THREE.Vector3(toX(c.lon),c._y+2.3,toZ(c.lat)),dx:c.dx||0,dy:c.dy||0});
+});
+GEO.forEach(function(g){
+  var d=document.createElement('div');
+  d.className='geoLb '+(g.cls||'');
+  d.textContent=g.zh;
+  labelLayer.appendChild(d);
+  var y=g.sea?0.2:Math.max(hAt(g.lat,g.lon),0)+0.6;
+  LB.push({el:d,w:new THREE.Vector3(toX(g.lon),y,toZ(g.lat)),dx:0,dy:0,geo:true});
+});
+var V=new THREE.Vector3();
+function placeLabels(){
+  var w=innerWidth,h=innerHeight;
+  LB.forEach(function(l){
+    V.copy(l.w).project(camera);
+    if(V.z>1||V.z<-1){l.el.style.display='none';return;}
+    l.el.style.display='';
+    var sx=(V.x*0.5+0.5)*w+l.dx, sy=(-V.y*0.5+0.5)*h+l.dy;
+    var dist=camera.position.distanceTo(l.w);
+    var k=Math.max(0.72,Math.min(1.06,1.22-dist/240));
+    l.el.style.left=sx+'px'; l.el.style.top=sy+'px';
+    l.el.style.transform='translate(-50%,'+(l.geo?'-50%':'-115%')+') scale('+k+')';
+  });
+}
+
+/* compass */
+var compassIn=document.getElementById('compassIn');
+
+/* =============== seasons =============== */
+var season='summer';
+function setSeason(s){
+  season=s;
+  document.body.className=s;
+  var btns=document.querySelectorAll('#seasons button');
+  btns.forEach(function(b){b.classList.toggle('on',b.dataset.s===s);});
+  if(s==='summer'){
+    sea.material.color.set(0x8fbfca);
+    riverMat.color.set(0x5fa3b8);
+    treeMat.color.set(0x2f6b45);
+    lake.material.color.set(0x4f93b8);
+    scene.fog.color.set(0xe3eee9);
+    hemi.color.set(0xfff6e2); hemi.groundColor.set(0x9db08a); hemi.intensity=0.95;
+    sun.color.set(0xfff2d8); sun.intensity=0.85;
+    snow.visible=false;
+  }else{
+    sea.material.color.set(0xc3d6dd);
+    riverMat.color.set(0xdceaf0);
+    treeMat.color.set(0x51705f);
+    lake.material.color.set(0xa8c8d8);
+    scene.fog.color.set(0xe6ecf1);
+    hemi.color.set(0xeef3fb); hemi.groundColor.set(0xb8c2cc); hemi.intensity=1.0;
+    sun.color.set(0xf2f6ff); sun.intensity=0.7;
+    snow.visible=true;
+  }
+  recolor(s);
+  poke();
+}
+document.querySelectorAll('#seasons button').forEach(function(b){
+  b.addEventListener('click',function(){setSeason(b.dataset.s);});
+});
+
+/* =============== stamps, tray, card =============== */
+var stamps=[];
+var trayInner=document.getElementById('trayInner');
+var ROTS={};
+CITIES.forEach(function(c){ROTS[c.id]=(Math.random()*16-8).toFixed(1)+'deg';});
+function renderTray(popId){
+  trayInner.innerHTML='';
+  CITIES.forEach(function(c){
+    var got=stamps.indexOf(c.id)>=0;
+    var d=document.createElement('div');
+    if(got){
+      d.className='seal'+(popId===c.id?' pop':'');
+      d.style.setProperty('--rot',ROTS[c.id]);
+      d.style.transform='rotate('+ROTS[c.id]+')';
+      d.textContent=c.ch;
+      d.title=c.zh;
+    }else{
+      d.className='slot empty';
+      d.textContent=c.emoji;
+      d.title=c.zh;
+    }
+    trayInner.appendChild(d);
+  });
+  document.getElementById('scNum').textContent=stamps.length;
+  LB.forEach(function(l){
+    if(l.el.dataset&&l.el.dataset.id)
+      l.el.classList.toggle('done',stamps.indexOf(l.el.dataset.id)>=0);
+  });
+}
+
+var cardWrap=document.getElementById('cardWrap');
+var card=document.getElementById('card');
+var currentCity=null;
+
+function secHTML(t,en,d){
+  return '<div class="cSec"><div class="secT">'+t+'<i>'+en+'</i></div>'+
+    '<p class="zh">'+d.zh+'</p><p class="en">'+d.en+'</p></div>';
+}
+function openCard(c){
+  currentCity=c;
+  var got=stamps.indexOf(c.id)>=0;
+  var pv=PROV[c.prov];
+  card.innerHTML=
+    '<div class="handle"></div>'+
+    '<div class="cHead"><div class="cEmoji">'+c.emoji+'</div>'+
+    '<div class="cName"><div class="zh">'+c.zh+'</div><div class="sub">'+c.pin+' · '+c.en+'</div></div>'+
+    '<div class="provChip" style="background:var('+pv.css+')">'+pv.zh+'</div>'+
+    '<button type="button" class="cClose" aria-label="关闭">×</button></div>'+
+    secHTML('👀 看什么','See',c.see)+
+    secHTML('🍜 吃什么','Eat',c.eat)+
+    secHTML('💡 小知识','Did you know',c.fun)+
+    '<div class="cSeasons">'+
+      '<div class="ss sum'+(season==='summer'?' now':'')+'"><b>☀️ 夏天来</b><p>'+c.sum.zh+'</p><p class="en">'+c.sum.en+'</p></div>'+
+      '<div class="ss win'+(season==='winter'?' now':'')+'"><b>❄️ 冬天来</b><p>'+c.win.zh+'</p><p class="en">'+c.win.en+'</p></div>'+
+    '</div>'+
+    '<button type="button" id="stampBtn"'+(got?' class="done"':'')+'>'+
+      (got?'已盖章 ✓':'盖 章')+
+      '<small>'+(got?'Collected':'Stamp it!')+'</small></button>'+
+    (got?'<div class="bigSeal" style="animation:none;transform:rotate(-8deg)">'+c.ch+'</div>':'');
+  cardWrap.classList.remove('hidden');
+  cardOpen=true;
+  flyTo(c);
+  card.querySelector('.cClose').addEventListener('click',closeCard);
+  card.querySelector('#stampBtn').addEventListener('click',function(){collect(c);});
+}
+function closeCard(){
+  if(!cardOpen)return;
+  cardWrap.classList.add('hidden');
+  cardOpen=false; currentCity=null;
+  goHome(); poke();
+}
+document.getElementById('cardBackdrop').addEventListener('click',closeCard);
+
+function collect(c){
+  if(stamps.indexOf(c.id)>=0)return;
+  stamps.push(c.id);
+  saveStamps(stamps);
+  renderTray(c.id);
+  var btn=card.querySelector('#stampBtn');
+  btn.className='done'; btn.innerHTML='已盖章 ✓<small>Collected</small>';
+  var seal=document.createElement('div');
+  seal.className='bigSeal'; seal.textContent=c.ch;
+  card.appendChild(seal);
+  if(stamps.length===CITIES.length){
+    setTimeout(showCert,700);
+  }
+}
+
+/* certificate + confetti */
+function showCert(){
+  var d=new Date();
+  document.getElementById('certDate').textContent=d.getFullYear()+' 年 '+(d.getMonth()+1)+' 月 · JOYZ';
+  document.getElementById('cert').classList.remove('hidden');
+  burst();
+}
+document.getElementById('certClose').addEventListener('click',function(){
+  document.getElementById('cert').classList.add('hidden');
+  closeCard();
+});
+function burst(){
+  var box=document.getElementById('confetti');
+  var ems=['🎉','❄️','⭐','🧧','🌟','🏮'];
+  for(var i=0;i<38;i++){
+    var sp=document.createElement('span');
+    sp.className='cf';
+    sp.textContent=ems[Math.floor(Math.random()*ems.length)];
+    sp.style.left=Math.random()*100+'vw';
+    sp.style.animationDuration=(2.4+Math.random()*2)+'s';
+    sp.style.animationDelay=(Math.random()*0.8)+'s';
+    box.appendChild(sp);
+    (function(node){setTimeout(function(){node.remove();},5200);})(sp);
+  }
+}
+
+/* reset (two taps) */
+var resetBtn=document.getElementById('resetBtn'), armT=null;
+resetBtn.addEventListener('click',function(){
+  if(resetBtn.classList.contains('arm')){
+    stamps=[]; saveStamps(stamps); renderTray();
+    resetBtn.classList.remove('arm'); resetBtn.textContent='↺';
+    clearTimeout(armT);
+  }else{
+    resetBtn.classList.add('arm'); resetBtn.textContent='再点一次清空';
+    armT=setTimeout(function(){resetBtn.classList.remove('arm');resetBtn.textContent='↺';},2600);
+  }
+});
+
+/* intro */
+document.getElementById('goBtn').addEventListener('click',function(){
+  document.getElementById('intro').classList.add('hidden');
+  poke();
+});
+
+/* =============== main loop =============== */
+addEventListener('resize',function(){
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+
+function tick(){
+  requestAnimationFrame(tick);
+  if(!cardOpen&&nPtr===0&&Date.now()-lastAct>9000) tgt.th+=0.0015;
+  var k=0.14;
+  cur.th+=(tgt.th-cur.th)*k;
+  cur.ph+=(tgt.ph-cur.ph)*k;
+  cur.r +=(tgt.r -cur.r )*k;
+  cur.lx+=(tgt.lx-cur.lx)*k;
+  cur.ly+=(tgt.ly-cur.ly)*k;
+  cur.lz+=(tgt.lz-cur.lz)*k;
+  applyCam();
+  if(snow.visible){
+    var p=snowGeo.attributes.position.array;
+    for(var i=0;i<SN;i++){
+      p[i*3+1]-=snowSp[i];
+      p[i*3]+=Math.sin((p[i*3+1]+i)*0.12)*0.02;
+      if(p[i*3+1]<0)p[i*3+1]=45;
+    }
+    snowGeo.attributes.position.needsUpdate=true;
+  }
+  compassIn.style.transform='rotate('+(-cur.th)+'rad)';
+  placeLabels();
+  renderer.render(scene,camera);
+}
+
+/* init */
+setSeason('summer');
+loadStamps().then(function(arr){
+  stamps=Array.isArray(arr)?arr.filter(function(id){
+    return CITIES.some(function(c){return c.id===id;});
+  }):[];
+  renderTray();
+});
+renderTray();
+applyCam();
+tick();
+})();
+</script>
+</body>
+</html>
